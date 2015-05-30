@@ -66,15 +66,17 @@ def upload(dirname, appid):
         yaml = fp.read()
     with open(filename, 'wb') as fp:
         fp.write(re.sub(r'application:\s*\S+', 'application: '+appid, yaml))
-    rollback_argv = ['appcfg', 'rollback', dirname]
-    upload_argv = ['appcfg', 'update', dirname]
     if os.getenv('USE_DOCKER'):
         auth_argv = [
+            'appcfg',
             '--email', os.getenv('GAE_EMAIL'),
             '--passin', os.getenv('GAE_PASSWORD')
         ]
-        rollback_argv += auth_argv
-        upload_argv += auth_argv
+        rollback_argv = auth_argv + ['rollback', dirname]
+        upload_argv = auth_argv + ['update', dirname]
+    else:
+        rollback_argv = ['appcfg', 'rollback', dirname]
+        upload_argv = ['appcfg', 'update', dirname]
     appcfg.main(rollback_argv)
     appcfg.main(upload_argv)
 
