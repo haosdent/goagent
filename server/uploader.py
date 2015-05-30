@@ -68,6 +68,7 @@ def upload(dirname, appid):
         yaml = fp.read()
     with open(filename, 'wb') as fp:
         fp.write(re.sub(r'application:\s*\S+', 'application: '+appid, yaml))
+
     if os.getenv('USE_DOCKER'):
         auth_argv = ['appcfg', '--email=' + os.getenv('GAE_EMAIL')]
         rollback_argv = auth_argv + ['rollback', dirname]
@@ -75,7 +76,12 @@ def upload(dirname, appid):
     else:
         rollback_argv = ['appcfg', 'rollback', dirname]
         upload_argv = ['appcfg', 'update', dirname]
-    appcfg.main(rollback_argv)
+
+    try:
+        appcfg.main(rollback_argv)
+    except AttributeError:
+        println(u'错误的 password，请确认是否输入正确')
+        sys.exit(-1)
     appcfg.main(upload_argv)
 
 
