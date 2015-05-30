@@ -31,6 +31,8 @@ fancy_urllib.FancyHTTPSHandler = urllib2.HTTPSHandler
 
 _realgetpass = getpass.getpass
 def getpass_getpass(prompt='Password:', stream=None):
+    if os.getenv('USE_DOCKER'):
+        return os.getenv('GAE_PASSWORD')
     try:
         import msvcrt
     except ImportError:
@@ -67,11 +69,7 @@ def upload(dirname, appid):
     with open(filename, 'wb') as fp:
         fp.write(re.sub(r'application:\s*\S+', 'application: '+appid, yaml))
     if os.getenv('USE_DOCKER'):
-        auth_argv = [
-            'appcfg',
-            '--email=' + os.getenv('GAE_EMAIL'),
-            '--passin=' + os.getenv('GAE_PASSWORD')
-        ]
+        auth_argv = ['appcfg', '--email=' + os.getenv('GAE_EMAIL')]
         rollback_argv = auth_argv + ['rollback', dirname]
         upload_argv = auth_argv + ['update', dirname]
     else:
