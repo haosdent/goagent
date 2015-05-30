@@ -16,7 +16,8 @@ try:
     os.environ['HTTPS_PROXY'] = '127.0.0.1:8087'
 except socket.error:
     println(u'警告：建议先启动 goagent 客户端或者 VPN 然后再上传，如果您的 VPN 已经打开的话，请按回车键继续。')
-    raw_input()
+    if not os.getenv('USE_DOCKER'):
+        raw_input()
 
 sys.modules.pop('google', None)
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, '../google_appengine.zip')))
@@ -65,24 +66,41 @@ def upload(dirname, appid):
         yaml = fp.read()
     with open(filename, 'wb') as fp:
         fp.write(re.sub(r'application:\s*\S+', 'application: '+appid, yaml))
-    appcfg.main(['appcfg', 'rollback', dirname])
-    appcfg.main(['appcfg', 'update', dirname])
+    rollback_argv = ['appcfg', 'rollback', dirname]
+    upload_argv = ['appcfg', 'update', dirname]
+    if os.getenv('USE_DOCKER'):
+        auth_argv = [
+            '--email', os.getenv('GAE_EMAIL'),
+            '--passin', os.getenv('GAE_PASSWORD')
+        ]
+        rollback_argv += auth_argv
+        upload_argv += auth_argv
+    appcfg.main(rollback_argv)
+    appcfg.main(upload_argv)
 
 
-def main():
-    appids = raw_input('APPID:')
+def get_appids():
+    if not os.getenv('USE_DOCKER'):
+        appids = raw_input('APPID:')
+    else:
+        appids = os.getenv('GAE_APPIDS')
     if not re.match(r'[0-9a-zA-Z\-|]+', appids):
         println(u'错误的 appid 格式，请登录 http://appengine.google.com 查看您的 appid!')
         sys.exit(-1)
     if any(x in appids.lower() for x in ('ios', 'android', 'mobile')):
         println(u'appid 不能包含 ios/android/mobile 等字样。')
         sys.exit(-1)
+    return appids.split('|')
+
+
+def main():
+    appids = get_appids()
     os.chdir(os.path.abspath(os.path.dirname(__file__)))
     try:
         os.remove(appengine_rpc.HttpRpcServer.DEFAULT_COOKIE_FILE_PATH)
     except OSError:
         pass
-    for appid in appids.split('|'):
+    for appid in appids:
         upload('gae', appid)
     try:
         os.remove(appengine_rpc.HttpRpcServer.DEFAULT_COOKIE_FILE_PATH)
@@ -102,4 +120,5 @@ if __name__ == '__main__':
         '''.strip())
     main()
     println(os.linesep + u'上传成功，请不要忘记编辑proxy.ini把你的appid填进去，谢谢。按回车键退出程序。')
-    raw_input()
+    if not os.getenv('USE_DOCKER'):
+        raw_input()
