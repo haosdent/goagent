@@ -69,8 +69,8 @@ def upload(dirname, appid):
     if os.getenv('USE_DOCKER'):
         auth_argv = [
             'appcfg',
-            '--email', os.getenv('GAE_EMAIL'),
-            '--passin', os.getenv('GAE_PASSWORD')
+            '--email=' + os.getenv('GAE_EMAIL'),
+            '--passin=' + os.getenv('GAE_PASSWORD')
         ]
         rollback_argv = auth_argv + ['rollback', dirname]
         upload_argv = auth_argv + ['update', dirname]
